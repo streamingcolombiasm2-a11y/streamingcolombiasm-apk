@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4338ca">
+<title>streamingcolombiasm</title>
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--ink:#172033;--muted:#68738a;--brand:#4338ca;--brand2:#6366f1;--line:#e7e9f2;--red:#dc2626;--green:#059669;--amber:#d97706}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink)}
+header{background:linear-gradient(135deg,#3730a3,#6366f1);color:white;padding:22px 18px 26px;border-radius:0 0 24px 24px}
+.head{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:22px;font-weight:800;letter-spacing:.2px}.sub{opacity:.85;font-size:13px;margin-top:3px}
+main{max-width:1100px;margin:18px auto;padding:0 14px 40px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:-5px}
+.stat,.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 18px #1b24500a}
+.stat small{color:var(--muted)}.stat strong{display:block;font-size:25px;margin-top:5px}
+nav{display:flex;gap:8px;overflow:auto;padding:16px 0 12px}
+nav button,.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:650;background:#e8e9fb;color:#3730a3;white-space:nowrap;cursor:pointer}
+nav button.active,.btn.primary{background:var(--brand);color:white}.btn.secondary{background:#eef0f7;color:#30394d}.btn.danger{background:#fee2e2;color:#991b1b}.btn.small{padding:7px 10px;font-size:12px}
+.panel{margin:8px 0 14px}.panel h2{font-size:18px;margin:0 0 14px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:145px}.field label{font-size:12px;color:var(--muted);font-weight:650}
+input,select,textarea{width:100%;border:1px solid #d9ddec;border-radius:10px;padding:11px;background:white;color:var(--ink);font:inherit;min-width:0}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;min-width:620px}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.tablewrap{overflow:auto}.pill{padding:4px 8px;border-radius:99px;font-size:11px;font-weight:700;background:#eef0f7}.pill.red{background:#fee2e2;color:#991b1b}.pill.amber{background:#fef3c7;color:#92400e}.pill.green{background:#d1fae5;color:#065f46}
+.hidden{display:none!important}.muted{color:var(--muted);font-size:13px}.notice{padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412;margin:10px 0;font-size:13px}
+#lock{position:fixed;inset:0;background:#f4f5fb;z-index:10;display:grid;place-items:center;padding:20px}#lock .panel{width:min(390px,100%);padding:24px}#lock h1{margin:0 0 6px;color:var(--brand)}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.stat{padding:13px}.stat strong{font-size:21px}.head{align-items:flex-start}.brand{font-size:19px}}
+</style>
+</head>
+<body>
+<div id="lock">
+ <div class="panel">
+  <h1>streamingcolombiasm</h1><p class="muted">Panel privado de ventas e inventario</p>
+  <div class="field"><label>Clave de acceso</label><input id="pin" type="password" inputmode="numeric" placeholder="Crea o escribe tu clave"></div>
+  <p class="muted" id="lockmsg">Primera vez: crea una clave de 4 o más caracteres.</p>
+  <button class="btn primary" style="width:100%" onclick="unlock()">Entrar / Crear clave</button>
+ </div>
+</div>
+<header><div class="head"><div><div class="brand">streamingcolombiasm</div><div class="sub">Control sencillo de ventas, clientes e inventario</div></div><button class="btn secondary" onclick="lockApp()">Bloquear</button></div></header>
+<main>
+ <section class="stats">
+  <div class="stat"><small>Ventas registradas</small><strong id="sSales">0</strong></div>
+  <div class="stat"><small>Ingresos acumulados</small><strong id="sIncome">$0</strong></div>
+  <div class="stat"><small>Servicios activos</small><strong id="sActive">0</strong></div>
+  <div class="stat"><small>Por vencer (7 días)</small><strong id="sDue">0</strong></div>
+ </section>
+ <nav>
+  <button class="active" data-tab="inicio" onclick="tab('inicio',this)">Resumen</button>
+  <button data-tab="ventas" onclick="tab('ventas',this)">Registrar venta</button>
+  <button data-tab="inventario" onclick="tab('inventario',this)">Inventario</button>
+  <button data-tab="clientes" onclick="tab('clientes',this)">Clientes</button>
+  <button data-tab="alertas" onclick="tab('alertas',this)">Vencimientos</button>
+  <button data-tab="ajustes" onclick="tab('ajustes',this)">Ajustes / Copia</button>
+ </nav>
+ <section id="inicio" class="view">
+  <div class="panel"><h2>Bienvenido</h2><p class="muted">Registra cada venta y su fecha de vencimiento. Los datos quedan guardados en este dispositivo.</p><div id="homeAlerts"></div></div>
+  <div class="panel"><h2>Últimas ventas</h2><div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th>Valor</th><th>Vence</th><th>Estado</th></tr></thead><tbody id="recentRows"></tbody></table></div></div>
+ </section>
+ <section id="ventas" class="view hidden">
+  <div class="panel"><h2>Registrar venta</h2>
+   <form id="saleForm">
+    <div class="row">
+     <div class="field"><label>Nombre del cliente *</label><input id="client" required placeholder="Nombre"></div>
+     <div class="field"><label>WhatsApp del cliente</label><input id="phone" inputmode="tel" placeholder="Ej. 3001234567"></div>
+     <div class="field"><label>Plataforma *</label><select id="platform" required><option value="">Seleccionar</option><option>Netflix</option><option>Disney+</option><option>YouTube Premium</option><option>Spotify</option><option>Amazon Prime</option><option>Crunchyroll</option><option>Otra</option></select></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+     <div class="field"><label>Producto / perfil / cuenta</label><input id="detail" placeholder="Ej. Perfil 2"></div>
+     <div class="field"><label>Valor recibido (COP) *</label><input id="price" type="number" min="0" required placeholder="15000"></div>
+     <div class="field"><label>Costo (COP)</label><input id="cost" type="number" min="0" placeholder="0"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+     <div class="field"><label>Fecha de venta *</label><input id="saleDate" type="date" required></div>
+     <div class="field"><label>Fecha de vencimiento *</label><input id="expiry" type="date" required></div>
+     <div class="field"><label>Estado</label><select id="status"><option>Activo</option><option>Pendiente</option></select></div>
+    </div>
+    <div class="actions"><button class="btn primary" type="submit">Guardar venta</button><button class="btn secondary" type="reset">Limpiar</button></div>
+   </form>
+  </div>
+  <div class="panel"><h2>Historial de ventas</h2><div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Plataforma</th><th>Valor</th><th>Vence</th><th>Acción</th></tr></thead><tbody id="salesRows"></tbody></table></div></div>
+ </section>
+ <section id="inventario" class="view hidden">
+  <div class="panel"><h2>Agregar al inventario</h2><form id="stockForm"><div class="row">
+   <div class="field"><label>Plataforma / producto *</label><input id="stockName" required placeholder="Ej. Netflix"></div>
+   <div class="field"><label>Tipo / detalle</label><input id="stockType" placeholder="Cuenta, perfil, PIN..."></div>
+   <div class="field"><label>Cantidad disponible *</label><input id="stockQty" type="number" min="0" required value="1"></div>
+  </div><div class="actions"><button class="btn primary">Guardar inventario</button></div></form></div>
+  <div class="panel"><h2>Existencias</h2><div class="tablewrap"><table><thead><tr><th>Producto</th><th>Detalle</th><th>Cantidad</th><th>Acción</th></tr></thead><tbody id="stockRows"></tbody></table></div></div>
+ </section>
+ <section id="clientes" class="view hidden"><div class="panel"><h2>Clientes registrados</h2><div class="tablewrap"><table><thead><tr><th>Cliente</th><th>WhatsApp</th><th>Compras</th><th>Total pagado</th></tr></thead><tbody id="clientRows"></tbody></table></div></div></section>
+ <section id="alertas" class="view hidden"><div class="panel"><h2>Alertas de vencimiento</h2><p class="muted">Se muestran servicios vencidos o que vencen dentro de los próximos 7 días.</p><div id="alertRows"></div></div></section>
+ <section id="ajustes" class="view hidden">
+  <div class="panel"><h2>Respaldo de información</h2><p class="muted">Descarga una copia de tus ventas e inventario para no perder los datos si cambias de celular o navegador.</p><div class="actions"><button class="btn primary" onclick="backup()">Descargar copia</button><label class="btn secondary" for="restoreFile">Restaurar copia</label><input class="hidden" id="restoreFile" type="file" accept="application/json" onchange="restore(event)"></div></div>
+  <div class="panel"><h2>Alertas por WhatsApp</h2><p class="muted">El sistema puede abrir WhatsApp con un mensaje preparado para avisarte. El envío debe confirmarse manualmente. Para alertas automáticas incluso con la app cerrada se necesita un servicio externo y configuración adicional.</p><div class="field"><label>Tu número de WhatsApp (con indicativo, ej. 57...)</label><input id="ownerPhone" placeholder="573001234567"></div><div class="actions"><button class="btn primary" onclick="savePhone()">Guardar número</button><button class="btn secondary" onclick="testWhatsApp()">Probar WhatsApp</button></div></div>
+  <div class="panel"><h2>Seguridad</h2><p class="muted">La clave bloquea la pantalla de esta aplicación en este dispositivo. No sustituye una cuenta en la nube ni cifra los datos almacenados.</p><button class="btn secondary" onclick="changePin()">Cambiar clave</button></div>
+ </section>
+ <footer>streamingcolombiasm · Datos guardados localmente en este dispositivo</footer>
+</main>
+<script>
+const KEY='scsm_data_v1', PIN='scsm_pin_v1', PHONE='scsm_phone_v1';
+let db={sales:[],stock:[]};
+function load(){try{db=JSON.parse(localStorage.getItem(KEY))||db}catch(e){}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function money(n){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0)}
+function dateNow(){return new Date().toISOString().slice(0,10)}
+function days(d){return Math.ceil((new Date(d+'T23:59:59')-new Date())/86400000)}
+function state(s){let d=days(s.expiry);return d<0?'<span class="pill red">Vencido</span>':d<=7?'<span class="pill amber">Por vencer</span>':'<span class="pill green">'+(s.status||'Activo')+'</span>'}
+function unlock(){let v=document.getElementById('pin').value;if(v.length<4){document.getElementById('lockmsg').textContent='La clave debe tener al menos 4 caracteres.';return}let p=localStorage.getItem(PIN);if(!p){localStorage.setItem(PIN,v)}else if(p!==v){document.getElementById('lockmsg').textContent='Clave incorrecta. Intenta de nuevo.';return}document.getElementById('lock').classList.add('hidden')}
+function lockApp(){document.getElementById('lock').classList.remove('hidden');document.getElementById('pin').value=''}
+function changePin(){let old=prompt('Escribe tu clave actual');if(old!==localStorage.getItem(PIN)){alert('Clave incorrecta');return}let n=prompt('Escribe la nueva clave (mínimo 4 caracteres)');if(n&&n.length>=4){localStorage.setItem(PIN,n);alert('Clave actualizada')}}
+function tab(id,b){document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()}
+document.getElementById('saleDate').value=dateNow();
+document.getElementById('saleForm').addEventListener('submit',e=>{e.preventDefault();let s={id:Date.now(),client:client.value.trim(),phone:phone.value.trim(),platform:platform.value,detail:detail.value.trim(),price:+price.value,cost:+cost.value||0,saleDate:saleDate.value,expiry:expiry.value,status:status.value};db.sales.unshift(s);save();e.target.reset();saleDate.value=dateNow();alert('Venta guardada correctamente')});
+document.getElementById('stockForm').addEventListener('submit',e=>{e.preventDefault();db.stock.push({id:Date.now(),name:stockName.value.trim(),type:stockType.value.trim(),qty:+stockQty.value});save();e.target.reset();stockQty.value=1;alert('Producto agregado al inventario')});
+function delSale(id){if(confirm('¿Eliminar esta venta?')){db.sales=db.sales.filter(x=>x.id!==id);save()}}
+function delStock(id){if(confirm('¿Eliminar este producto?')){db.stock=db.stock.filter(x=>x.id!==id);save()}}
+function render(){
+let active=db.sales.filter(s=>days(s.expiry)>=0).length,due=db.sales.filter(s=>days(s.expiry)<=7).length;
+document.getElementById('sSales').textContent=db.sales.length;document.getElementById('sIncome').textContent=money(db.sales.reduce((a,s)=>a+s.price,0));document.getElementById('sActive').textContent=active;document.getElementById('sDue').textContent=due;
+let rows=db.sales.slice(0,5).map(s=>`<tr><td>${esc(s.client)}</td><td>${esc(s.platform)}</td><td>${money(s.price)}</td><td>${s.expiry}</td><td>${state(s)}</td></tr>`).join('');
+document.getElementById('recentRows').innerHTML=rows||'<tr><td colspan="5">Aún no hay ventas registradas.</td></tr>';
+document.getElementById('salesRows').innerHTML=db.sales.map(s=>`<tr><td>${s.saleDate}</td><td>${esc(s.client)}</td><td>${esc(s.platform)}</td><td>${money(s.price)}</td><td>${s.expiry} ${state(s)}</td><td><button class="btn danger small" onclick="delSale(${s.id})">Eliminar</button></td></tr>`).join('')||'<tr><td colspan="6">Sin ventas.</td></tr>';
+document.getElementById('stockRows').innerHTML=db.stock.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.type)}</td><td>${s.qty}</td><td><button class="btn danger small" onclick="delStock(${s.id})">Eliminar</button></td></tr>`).join('')||'<tr><td colspan="4">Inventario vacío.</td></tr>';
+let clients={};db.sales.forEach(s=>{let k=s.client.toLowerCase();if(!clients[k])clients[k]={name:s.client,phone:s.phone,count:0,total:0};clients[k].count++;clients[k].total+=s.price});
+document.getElementById('clientRows').innerHTML=Object.values(clients).map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${c.count}</td><td>${money(c.total)}</td></tr>`).join('')||'<tr><td colspan="4">Sin clientes.</td></tr>';
+let alerts=db.sales.filter(s=>days(s.expiry)<=7).sort((a,b)=>a.expiry.localeCompare(b.expiry));
+let html=alerts.map(s=>{let d=days(s.expiry),msg=d<0?'Venció hace '+Math.abs(d)+' día(s)':d===0?'Vence hoy':'Vence en '+d+' día(s)';let phoneNum=(s.phone||'').replace(/\D/g,'');let link=phoneNum?`<a target="_blank" href="https://wa.me/${phoneNum}?text=${encodeURIComponent('Hola '+s.client+', te recordamos que tu servicio de '+s.platform+' vence el '+s.expiry+'.') }">Avisar cliente</a>`:'';return `<div class="notice"><b>${esc(s.client)} · ${esc(s.platform)}</b><br>${msg} (${s.expiry})<br>${link}</div>`}).join('');
+document.getElementById('alertRows').innerHTML=html||'<p class="muted">No hay vencimientos próximos.</p>';
+document.getElementById('homeAlerts').innerHTML=alerts.length?`<div class="notice">Tienes ${alerts.length} servicio(s) vencido(s) o por vencer. Revisa la sección Vencimientos.</div>`:'<p class="muted">No tienes alertas pendientes.</p>';
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function backup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='respaldo-streamingcolombiasm.json';a.click();URL.revokeObjectURL(a.href)}
+function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.sales)||!Array.isArray(x.stock))throw Error();db=x;save();alert('Copia restaurada')}catch(err){alert('El archivo no es un respaldo válido')}};r.readAsText(f)}
+function savePhone(){localStorage.setItem(PHONE,document.getElementById('ownerPhone').value.replace(/\D/g,''));alert('Número guardado')}
+function testWhatsApp(){let p=localStorage.getItem(PHONE)||document.getElementById('ownerPhone').value.replace(/\D/g,'');if(!p){alert('Escribe primero tu número de WhatsApp');return}window.open('https://wa.me/'+p+'?text='+encodeURIComponent('Prueba de alertas de streamingcolombiasm'),'_blank')}
+load();document.getElementById('ownerPhone').value=localStorage.getItem(PHONE)||'';render();
+</script>
+</body></html>
